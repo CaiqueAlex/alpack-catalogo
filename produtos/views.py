@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.utils.html import escape
+from django.db import connection
 from .models import Categoria, Produto
 import logging
 
@@ -38,6 +39,9 @@ def salvar_dados_no_banco():
                     'emoji': cat_data['emoji']
                 }
             )
+        
+        # Corrigir sequência após inserções manuais
+        fix_postgresql_sequences()
     
     if not Produto.objects.exists():
         categoria_embalagens = Categoria.objects.get(id=1)
@@ -53,6 +57,32 @@ def salvar_dados_no_banco():
                 'tags': 'embalagem, transporte, papelao, resistente'
             }
         )
+        
+        # Corrigir sequência após inserções manuais
+        fix_postgresql_sequences()
+
+def fix_postgresql_sequences():
+    """Corrige as sequências do PostgreSQL após inserções manuais"""
+    try:
+        with connection.cursor() as cursor:
+            # Corrigir sequência da tabela categorias
+            cursor.execute("""
+                SELECT setval('produtos_categoria_id_seq', 
+                    COALESCE((SELECT MAX(id) FROM produtos_categoria), 1), 
+                    true);
+            """)
+            
+            # Corrigir sequência da tabela produtos  
+            cursor.execute("""
+                SELECT setval('produtos_produto_id_seq', 
+                    COALESCE((SELECT MAX(id) FROM produtos_produto), 1), 
+                    true);
+            """)
+            
+        logger.info("✅ Sequências PostgreSQL corrigidas")
+        
+    except Exception as e:
+        logger.error(f"Erro ao corrigir sequências: {e}")
 
 def carregar_dados():
     """Carrega dados sempre do banco de dados"""
@@ -267,7 +297,7 @@ def api_salvar_categoria(request):
             except ValueError:
                 return JsonResponse({'success': False, 'error': 'ID de categoria inválido'})
         else:
-            # Criar nova categoria
+            # Criar nova categoria SEM especificar ID (deixa o PostgreSQL decidir)
             categoria = Categoria.objects.create(nome=nome, emoji=emoji)
             logger.info(f"Nova categoria {categoria.id} criada com sucesso")
         
@@ -276,6 +306,18 @@ def api_salvar_categoria(request):
     except Exception as e:
         # Log detalhado do erro
         logger.error(f"Erro interno ao salvar categoria: {str(e)}", exc_info=True)
+        
+        # Verificar se é erro de sequência e tentar corrigir
+        if 'duplicate key value violates unique constraint' in str(e):
+            try:
+                fix_postgresql_sequences()
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'Erro de sequência detectado e corrigido. Tente novamente.'
+                })
+            except:
+                pass
+        
         return JsonResponse({'success': False, 'error': f'Erro interno: {str(e)}'})
 
 @login_required
