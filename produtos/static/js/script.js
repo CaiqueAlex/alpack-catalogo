@@ -1,6 +1,6 @@
 // ─── Config da Empresa ───────────────────────────────────────────────
 let empresaConfig = {
-    whatsapp: "5511999999999",
+    whatsapp: "551434340001",
     mensagemPadrao: "Olá! Vi o produto {produto} no catálogo da Alpack e gostaria de mais informações."
 };
 
@@ -144,10 +144,11 @@ class LoadingScreen {
     }
 }
 
-// ─── Gerenciador de Tema ─────────────────────────────────────────────
+// ─── Gerenciador de Tema (MODO ESCURO COMO PADRÃO) ─────────────────────────────────────────────
 class ThemeManager {
     constructor() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
+        // 🌙 MODO ESCURO COMO PADRÃO! Se não há preferência salva, usa dark
+        this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.init();
     }
     init() {
