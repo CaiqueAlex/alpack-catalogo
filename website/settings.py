@@ -1,17 +1,13 @@
 # website/settings.py
 import os
-import socket
 from pathlib import Path
-import dj_database_url
 from django.core.management.utils import get_random_secret_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-from dotenv import load_dotenv
-load_dotenv(os.path.join(BASE_DIR, '.env'))
-
-SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# ✅ CONFIGURAÇÃO SIMPLES SEM DEPENDÊNCIAS EXTERNAS
+SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
+DEBUG = True  # ✅ True para desenvolvimento
 
 ALLOWED_HOSTS = ['*']
 
@@ -56,24 +52,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'website.wsgi.application'
 
+# ✅ CONFIGURAÇÃO SQLITE SIMPLES (SEM dj_database_url)
 DATABASES = {
-    'default': dj_database_url.parse(
-        os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
-# ─── HTTPS — funciona no PythonAnywhere e outros proxies ───
-# PythonAnywhere termina o SSL no proxy e repassa via HTTP interno.
-# O header abaixo diz ao Django para confiar nisso.
+# ✅ CONFIGURAÇÕES HTTPS PARA PYTHONANYWHERE
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Redireciona HTTP → HTTPS automaticamente quando atrás do proxy
-SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
-
-# Cookies seguros (só trafegam por HTTPS)
-SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
-CSRF_COOKIE_SECURE    = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+SECURE_SSL_REDIRECT = False  # False para desenvolvimento
+SESSION_COOKIE_SECURE = False 
+CSRF_COOKIE_SECURE = False
 
 SESSION_COOKIE_AGE = 7200
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -90,7 +81,7 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-# Static dentro da pasta produtos
+# Static files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'produtos' / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
