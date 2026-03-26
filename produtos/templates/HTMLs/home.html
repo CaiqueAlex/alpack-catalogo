@@ -37,11 +37,38 @@
         </button>
     </div>
 
+    <!-- ✅ NOVO: Orb Flutuante WhatsApp -->
+    <div class="whatsapp-orb" id="whatsappOrb">
+        <div class="orb-icon">💬</div>
+        <div class="orb-pulse"></div>
+    </div>
+
+    <!-- ✅ NOVO: Botão do Carrinho -->
+    <div class="cart-button" id="cartButton">
+        <div class="cart-icon">🛒</div>
+        <div class="cart-count" id="cartCount">0</div>
+        <div class="cart-pulse"></div>
+    </div>
+
+    <!-- ✅ NOVO: Painel do Carrinho -->
+    <div class="cart-panel" id="cartPanel">
+        <div class="cart-header">
+            <h3>🛒 Carrinho</h3>
+            <button class="cart-close" onclick="fecharCarrinho()">&times;</button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="cart-empty">Carrinho vazio</div>
+        </div>
+        <div class="cart-actions" id="cartActions" style="display: none;">
+            <button class="btn-continue-shopping" onclick="fecharCarrinho()">Voltar a comprar</button>
+            <button class="btn-make-order" onclick="fazerPedido()">Fazer Pedido</button>
+        </div>
+    </div>
+
     <!-- Header Redesenhado -->
     <header class="header-novo">
         <div class="container">
             <div class="header-content">
-                <!-- Logo com Animação -->
                 <div class="logo-animado">
                     <img src="{% static 'images/Alpacklogo.png' %}" alt="Alpack Distribuidora" class="logo-principal">
                     <div class="triangulos-holograficos">
@@ -57,8 +84,6 @@
                         <div class="triangulo" style="--delay: 1.8s; --color: #4A90E2; --start-y: -10px;"></div>
                     </div>
                 </div>
-                
-                <!-- Texto do Header (será atualizado via JavaScript) -->
                 <div class="header-texto">
                     <h1 id="headerTitulo">Descubra nossa variedade em embalagens e descartáveis!</h1>
                     <p id="headerSubtitulo">Qualidade e preço justo para seu negócio crescer</p>
@@ -67,10 +92,10 @@
         </div>
     </header>
 
-    <!-- Filtros -->
-    <section class="filtros">
+    <!-- ✅ NOVO: Filtros com Botão Toggle -->
+    <section class="filtros" id="filtrosSection">
         <div class="container">
-            <div class="filtros-container">
+            <div class="filtros-container" id="filtrosContainer">
                 <div class="busca-container">
                     <input type="text"
                            class="busca-input"
@@ -78,28 +103,26 @@
                            id="buscaInput">
                     <span class="busca-icon">🔍</span>
                 </div>
-                <div class="categorias">
+                <!-- Categorias geradas dinamicamente pelo JS -->
+                <div class="categorias" id="categoriasContainer">
                     <button class="categoria-btn ativo" data-categoria="todos">📋 Todos</button>
-                    <button class="categoria-btn" data-categoria="1">📦 Embalagens</button>
-                    <button class="categoria-btn" data-categoria="2">🥤 Plásticos</button>
-                    <button class="categoria-btn" data-categoria="3">🍽️ Descartáveis</button>
-                    <button class="categoria-btn" data-categoria="4">🧽 Produtos de Limpeza</button>
-                    <button class="categoria-btn" data-categoria="5">🗑️ Cestos e Lixeiras</button>
-                    <button class="categoria-btn" data-categoria="6">🛍️ Sacos de Lixo</button>
-                    <button class="categoria-btn" data-categoria="7">🛒 Sacolas Plásticas</button>
                 </div>
             </div>
         </div>
+        <!-- ✅ NOVO: Botão Toggle dos Filtros -->
+        <button class="filtros-toggle" id="filtrosToggle" onclick="toggleFiltros()">
+            <span class="toggle-icon">⬆️</span>
+        </button>
     </section>
 
-    <!-- Info e Paginação -->
+    <!-- Info -->
     <div class="container">
         <div class="info-produtos">
-            <p id="infoTexto">{{ total_produtos }} produto{{ total_produtos|pluralize }} disponível{{ total_produtos|pluralize:"is" }}</p>
+            <p id="infoTexto">Carregando produtos...</p>
         </div>
     </div>
 
-    <!-- Grid com Container de Paginação -->
+    <!-- Grid -->
     <main class="container">
         <div class="pagination-container">
             <div class="produtos-grid" id="produtosGrid"></div>
@@ -109,7 +132,7 @@
                 <button class="categoria-btn" onclick="resetarFiltros()">Ver todos os produtos</button>
             </div>
         </div>
-        
+
         <!-- Controles de Paginação -->
         <div class="pagination-controls" id="paginationControls" style="display: none;">
             <button class="pagination-btn" id="prevPage" onclick="mudarPagina(-1)">
@@ -124,9 +147,9 @@
         </div>
     </main>
 
-    <!-- Modal de Detalhes -->
+    <!-- ✅ ATUALIZADO: Modal com Animações Avançadas -->
     <div class="modal" id="modalDetalhes">
-        <div class="modal-content">
+        <div class="modal-content" id="modalContent">
             <button class="modal-close" onclick="fecharModal()" aria-label="Fechar">&times;</button>
             <div class="produto-detalhe" id="produtoDetalhe"></div>
         </div>
@@ -158,51 +181,44 @@
         </div>
     </footer>
 
-    <!-- Dados para JavaScript -->
+    <!-- Dados do Django para o JS -->
     <script>
+        window.DADOS_BANCO = {
+            produtos: {{ produtos_json|safe }},
+            categorias: {{ categorias_json|safe }}
+        };
+
         window.dadosEmpresa = {
             whatsapp: "{{ empresa.whatsapp }}",
             mensagemPadrao: "{{ empresa.mensagem_padrao }}"
         };
 
-        // Carregar configurações do localStorage e aplicar
+        // Aplicar configs do localStorage
         document.addEventListener('DOMContentLoaded', function() {
             const config = JSON.parse(localStorage.getItem('alpack_config') || '{}');
-            
-            if (config.header_titulo) {
-                document.getElementById('headerTitulo').textContent = config.header_titulo;
-            }
-            
-            if (config.header_subtitulo) {
-                document.getElementById('headerSubtitulo').textContent = config.header_subtitulo;
-            }
-            
+
+            if (config.header_titulo) document.getElementById('headerTitulo').textContent = config.header_titulo;
+            if (config.header_subtitulo) document.getElementById('headerSubtitulo').textContent = config.header_subtitulo;
+
             if (config.whatsapp) {
-                const whatsappFormatted = config.whatsapp.slice(2,4) + ' ' + config.whatsapp.slice(4,9) + '-' + config.whatsapp.slice(9,13);
-                document.getElementById('footerWhatsapp').textContent = whatsappFormatted;
-                document.getElementById('footerWhatsapp').parentElement.querySelector('a').href = 'https://wa.me/' + config.whatsapp;
-                window.dadosEmpresa.whatsapp = config.whatsapp;
+                const w = config.whatsapp;
+                const fmt = w.slice(2,4) + ' ' + w.slice(4,9) + '-' + w.slice(9,13);
+                const linkEl = document.getElementById('footerWhatsapp');
+                if (linkEl) {
+                    linkEl.textContent = fmt;
+                    linkEl.href = 'https://wa.me/' + w;
+                }
+                window.dadosEmpresa.whatsapp = w;
             }
-            
-            if (config.email) {
-                document.getElementById('footerEmail').textContent = config.email;
-            }
-            
-            if (config.horario) {
-                document.getElementById('footerHorario').textContent = config.horario;
-            }
-            
-            if (config.endereco) {
-                document.getElementById('footerEndereco').textContent = config.endereco;
-            }
-            
-            if (config.nome) {
-                document.getElementById('footerNome').textContent = config.nome;
-            }
-            
-            if (config.mensagem_padrao) {
-                window.dadosEmpresa.mensagemPadrao = config.mensagem_padrao;
-            }
+
+            if (config.email) document.getElementById('footerEmail').textContent = config.email;
+            if (config.horario) document.getElementById('footerHorario').textContent = config.horario;
+            if (config.endereco) document.getElementById('footerEndereco').textContent = config.endereco;
+            if (config.nome) document.getElementById('footerNome').textContent = config.nome;
+            if (config.mensagem_padrao) window.dadosEmpresa.mensagemPadrao = config.mensagem_padrao;
+
+            console.log('🔍 Produtos carregados:', window.DADOS_BANCO.produtos);
+            console.log('🔍 Categorias carregadas:', window.DADOS_BANCO.categorias);
         });
     </script>
     <script src="{% static 'js/script.js' %}"></script>

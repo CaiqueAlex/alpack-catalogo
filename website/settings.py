@@ -1,23 +1,20 @@
 # website/settings.py
 import os
+import socket
 from pathlib import Path
 import dj_database_url
 from django.core.management.utils import get_random_secret_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Carregar variáveis de ambiente
 from dotenv import load_dotenv
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# SEGURANÇA (mas site público)
 SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# SITE PÚBLICO - qualquer um pode acessar
-ALLOWED_HOSTS = ['*']  # Permite qualquer domínio
+ALLOWED_HOSTS = ['*']
 
-# Aplicações
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -28,7 +25,6 @@ INSTALLED_APPS = [
     'produtos',
 ]
 
-# Middleware básico (removendo excessos de segurança para site público)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -60,7 +56,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'website.wsgi.application'
 
-# BANCO DE DADOS
 DATABASES = {
     'default': dj_database_url.parse(
         os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
@@ -68,15 +63,21 @@ DATABASES = {
     )
 }
 
-# Configurações básicas de segurança (só para HTTPS)
-SECURE_SSL_REDIRECT = not DEBUG
+# ─── HTTPS — funciona no PythonAnywhere e outros proxies ───
+# PythonAnywhere termina o SSL no proxy e repassa via HTTP interno.
+# O header abaixo diz ao Django para confiar nisso.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Configurações de Sessão (só para admin)
-SESSION_COOKIE_AGE = 7200  # 2 horas
+# Redireciona HTTP → HTTPS automaticamente quando atrás do proxy
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+
+# Cookies seguros (só trafegam por HTTPS)
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_SECURE    = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+
+SESSION_COOKIE_AGE = 7200
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# Validadores de senha FORTES para admin
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
@@ -84,15 +85,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internacionalização
 LANGUAGE_CODE = 'pt-br'
 TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-# Arquivos estáticos
+# Static dentro da pasta produtos
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'produtos' / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -101,7 +101,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configurações da empresa
 EMPRESA_CONFIG = {
     'nome': 'Alpack Distribuidora',
     'whatsapp': '551434340001',

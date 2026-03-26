@@ -23,3 +23,5 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS('✅ Sequências corrigidas com sucesso!')
         )
+
+        já feito

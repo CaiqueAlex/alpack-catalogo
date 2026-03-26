@@ -145,9 +145,12 @@ def catalogo(request):
 
     produtos.sort(key=lambda x: (not x.get('destaque', False), x.get('nome', '')))
 
+    # ✅ CORREÇÃO PRINCIPAL: Serializar dados para JSON
     context = {
         'produtos': produtos,
         'categorias': categorias,
+        'produtos_json': json.dumps(produtos),  # ← ADICIONADO
+        'categorias_json': json.dumps(categorias),  # ← ADICIONADO
         'categoria_atual': categoria_filtro,
         'busca_atual': busca,
         'empresa': settings.EMPRESA_CONFIG,
