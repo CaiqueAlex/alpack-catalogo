@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════
-//  script.js — VERSÃO COM SISTEMA DE CARRINHO + TOGGLE FILTROS
+//  script.js — VERSÃO COM SISTEMA DE CARRINHO + QUANTIDADE
 // ═══════════════════════════════════════════════════════════
 
-console.log('🔥 SCRIPT.JS CARREGADO - VERSÃO COM CARRINHO + TOGGLE FILTROS');
+console.log('🔥 SCRIPT.JS CARREGADO - VERSÃO COM CARRINHO + QUANTIDADE');
 
 // ─── Estado global ────────────────────────────────────────
 const ITENS_POR_PAGINA = 12;
@@ -12,11 +12,12 @@ let termoBusca = '';
 let todosOsProdutos = [];
 let todasAsCategorias = [];
 
-// ✅ NOVO: Sistema de Carrinho
+// ✅ NOVO: Sistema de Carrinho com quantidade
 let carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
 
-// ✅ NOVO: Variáveis para controle do modal
+// ✅ NOVO: Variáveis para controle dos modais
 let modalOriginCard = null;
+let quantityModalProductId = null;
 
 // ✅ NOVO: Estado dos filtros (expandido/minimizado)
 let filtrosMinimizados = localStorage.getItem('filtros_minimizados') === 'true' || false;
@@ -196,7 +197,7 @@ class WhatsAppOrb {
     }
 }
 
-// ✅ NOVO: Sistema de Carrinho
+// ✅ NOVO: Sistema de Carrinho com Quantidades
 class CarrinhoManager {
     constructor() {
         this.carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
@@ -216,30 +217,48 @@ class CarrinhoManager {
         }
     }
 
-    adicionarProduto(produtoId) {
+    adicionarProduto(produtoId, quantidade = 1) {
         const produto = todosOsProdutos.find(p => p.id === produtoId);
         if (!produto) return;
 
         // Verificar se já está no carrinho
-        const jaExiste = this.carrinho.find(item => item.id === produtoId);
-        if (jaExiste) {
-            showNotification('Produto já está no carrinho!', 'warning');
-            return;
+        const itemExistente = this.carrinho.find(item => item.id === produtoId);
+        if (itemExistente) {
+            // Atualizar quantidade
+            itemExistente.quantidade = quantidade;
+            showNotification(`Quantidade de ${produto.nome} atualizada para ${quantidade}!`, 'success');
+        } else {
+            // Adicionar novo item
+            this.carrinho.push({
+                id: produto.id,
+                nome: produto.nome,
+                emoji: produto.emoji,
+                quantidade: quantidade
+            });
+            showNotification(`${produto.nome} (${quantidade}UN) adicionado ao carrinho!`, 'success');
         }
-
-        this.carrinho.push({
-            id: produto.id,
-            nome: produto.nome,
-            emoji: produto.emoji
-        });
 
         this.salvarCarrinho();
         this.atualizarContador();
         this.mostrarBotaoCarrinho();
         this.marcarProdutoNoCarrinho(produtoId);
         
-        showNotification(`${produto.nome} adicionado ao carrinho!`, 'success');
-        console.log('🛒 Produto adicionado:', produto.nome);
+        console.log('🛒 Produto adicionado:', produto.nome, 'Quantidade:', quantidade);
+    }
+
+    alterarQuantidadeNoCarrinho(produtoId, novaQuantidade) {
+        if (novaQuantidade < 1) {
+            this.removerProduto(produtoId);
+            return;
+        }
+
+        const item = this.carrinho.find(item => item.id === produtoId);
+        if (item) {
+            item.quantidade = Math.min(99, Math.max(1, novaQuantidade));
+            this.salvarCarrinho();
+            this.atualizarListaCarrinho();
+            this.atualizarContador();
+        }
     }
 
     removerProduto(produtoId) {
@@ -259,12 +278,15 @@ class CarrinhoManager {
 
     salvarCarrinho() {
         localStorage.setItem('carrinho', JSON.stringify(this.carrinho));
+        // ✅ CORREÇÃO: Também atualizar a variável global
+        carrinho = this.carrinho;
     }
 
     atualizarContador() {
+        const totalItens = this.carrinho.reduce((total, item) => total + item.quantidade, 0);
         const contador = document.getElementById('cartCount');
         if (contador) {
-            contador.textContent = this.carrinho.length;
+            contador.textContent = totalItens;
         }
         
         if (this.carrinho.length > 0) {
@@ -323,7 +345,14 @@ class CarrinhoManager {
         cartItems.innerHTML = this.carrinho.map(item => `
             <div class="cart-item" data-id="${item.id}">
                 <span class="cart-item-emoji">${item.emoji}</span>
-                <span class="cart-item-name">${item.nome}</span>
+                <div class="cart-item-info">
+                    <span class="cart-item-name">${item.nome}</span>
+                    <div class="cart-item-quantity">
+                        <button class="quantity-mini-btn" onclick="carrinhoManager.alterarQuantidadeNoCarrinho(${item.id}, ${item.quantidade - 1})">−</button>
+                        <span class="quantity-display">${item.quantidade}</span>
+                        <button class="quantity-mini-btn" onclick="carrinhoManager.alterarQuantidadeNoCarrinho(${item.id}, ${item.quantidade + 1})">+</button>
+                    </div>
+                </div>
                 <button class="cart-item-remove" onclick="carrinhoManager.removerProduto(${item.id})">&times;</button>
             </div>
         `).join('');
@@ -366,7 +395,7 @@ class CarrinhoManager {
         let mensagem = 'Olá! Gostaria de fazer um pedido...\n\n';
         
         this.carrinho.forEach((item, index) => {
-            mensagem += `${index + 1}. ${item.nome}\n`;
+            mensagem += `${index + 1}. ${item.nome} - ${item.quantidade}UN\n`;
         });
 
         const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
@@ -389,6 +418,92 @@ class CarrinhoManager {
 
         showNotification('Pedido enviado! Carrinho limpo.', 'success');
     }
+}
+
+// ✅ NOVO: Sistema de Modal de Quantidade
+function abrirModalQuantidade(produtoId) {
+    console.log('🛒 Abrindo modal quantidade para produto:', produtoId);
+    
+    const produto = todosOsProdutos.find(p => p.id === produtoId);
+    if (!produto) {
+        console.error('❌ Produto não encontrado:', produtoId);
+        return;
+    }
+
+    quantityModalProductId = produtoId;
+
+    // ✅ CORREÇÃO: Usar carrinho global correto
+    const itemNoCarrinho = carrinho.find(item => item.id === produtoId);
+    const quantidadeAtual = itemNoCarrinho ? itemNoCarrinho.quantidade : 1;
+
+    // ✅ VERIFICAÇÃO: Conferir se elementos existem
+    const emojiEl = document.getElementById('quantityProductEmoji');
+    const nameEl = document.getElementById('quantityProductName');
+    const inputEl = document.getElementById('quantityInput');
+    const modalEl = document.getElementById('quantityModal');
+
+    if (!emojiEl || !nameEl || !inputEl || !modalEl) {
+        console.error('❌ Elementos do modal não encontrados');
+        console.log('Elements found:', {
+            emoji: !!emojiEl,
+            name: !!nameEl,
+            input: !!inputEl,
+            modal: !!modalEl
+        });
+        return;
+    }
+
+    emojiEl.textContent = produto.emoji;
+    nameEl.textContent = produto.nome;
+    inputEl.value = quantidadeAtual;
+
+    modalEl.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Focar no input
+    setTimeout(() => {
+        inputEl.select();
+    }, 100);
+    
+    console.log('✅ Modal de quantidade aberto');
+}
+
+function alterarQuantidade(delta) {
+    const input = document.getElementById('quantityInput');
+    if (!input) return;
+    
+    let valor = parseInt(input.value) + delta;
+    valor = Math.max(1, Math.min(99, valor));
+    input.value = valor;
+}
+
+function validarQuantidade() {
+    const input = document.getElementById('quantityInput');
+    if (!input) return;
+    
+    let valor = parseInt(input.value) || 1;
+    valor = Math.max(1, Math.min(99, valor));
+    input.value = valor;
+}
+
+function confirmarQuantidade() {
+    const input = document.getElementById('quantityInput');
+    if (!input) return;
+    
+    const quantidade = parseInt(input.value);
+    if (quantityModalProductId && quantidade >= 1 && quantidade <= 99) {
+        window.carrinhoManager.adicionarProduto(quantityModalProductId, quantidade);
+        cancelarQuantidade();
+    }
+}
+
+function cancelarQuantidade() {
+    const modal = document.getElementById('quantityModal');
+    if (!modal) return;
+    
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    quantityModalProductId = null;
 }
 
 // ✅ NOVO: Função Toggle dos Filtros
@@ -419,7 +534,7 @@ function toggleFiltros() {
 
 // ✅ INICIALIZAÇÃO COM LOGS EXTREMOS
 document.addEventListener('DOMContentLoaded', async function () {
-    console.log('🚀🚀🚀 APLICAÇÃO INICIANDO - VERSÃO COM CARRINHO + TOGGLE FILTROS 🚀🚀🚀');
+    console.log('🚀🚀🚀 APLICAÇÃO INICIANDO - VERSÃO COM CARRINHO + QUANTIDADE 🚀🚀🚀');
     
     // Loading
     const loading = new LoadingScreen();
@@ -433,6 +548,23 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // ✅ NOVO: Carrinho
     window.carrinhoManager = new CarrinhoManager();
+
+    // ✅ NOVO: Configurar eventos do modal de quantidade
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('quantityModal');
+        if (e.target === modal) {
+            cancelarQuantidade();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('quantityModal');
+            if (modal && modal.style.display === 'flex') {
+                cancelarQuantidade();
+            }
+        }
+    });
 
     // ✅ NOVO: Restaurar estado dos filtros
     if (filtrosMinimizados) {
@@ -482,6 +614,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log('- categoriasContainer:', !!document.getElementById('categoriasContainer'));
     console.log('- produtosGrid:', !!document.getElementById('produtosGrid'));
     console.log('- buscaInput:', !!document.getElementById('buscaInput'));
+    console.log('- quantityModal:', !!document.getElementById('quantityModal'));
 
     construirBotoesCategorias();
     aplicarFiltros();
@@ -742,7 +875,7 @@ function mudarPagina(direcao) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ✅ CARD MELHORADO COM CARRINHO
+// ✅ CARD MELHORADO COM CARRINHO E QUANTIDADE
 function criarCardProduto(produto, index = 0) {
     const cat = todasAsCategorias.find(c => c.id === produto.categoria_id);
     const catNome = cat ? `${cat.emoji} ${cat.nome}` : '❓ Sem categoria';
@@ -780,7 +913,7 @@ function criarCardProduto(produto, index = 0) {
                     <button class="btn-whatsapp" onclick="event.stopPropagation(); abrirWhatsapp('${produto.nome.replace(/'/g, "\\'")}')">
                         💬 WhatsApp
                     </button>
-                    <button class="btn-add-cart" onclick="event.stopPropagation(); adicionarAoCarrinho(${produto.id})">
+                    <button class="btn-add-cart" onclick="event.stopPropagation(); abrirModalQuantidade(${produto.id})">
                         🛒 Adicionar
                     </button>
                 </div>
@@ -791,9 +924,7 @@ function criarCardProduto(produto, index = 0) {
 
 // ✅ NOVO: Função para adicionar ao carrinho
 function adicionarAoCarrinho(produtoId) {
-    if (window.carrinhoManager) {
-        window.carrinhoManager.adicionarProduto(produtoId);
-    }
+    abrirModalQuantidade(produtoId);
 }
 
 // ✅ NOVO: Função para fechar carrinho
@@ -862,7 +993,7 @@ function abrirModal(id, cardElement) {
                     <button class="btn-whatsapp-grande" onclick="abrirWhatsapp('${produto.nome.replace(/'/g, "\\'")}')">
                         📱 Entrar em Contato
                     </button>
-                    <button class="btn-add-cart-grande" onclick="adicionarAoCarrinho(${produto.id})">
+                    <button class="btn-add-cart-grande" onclick="abrirModalQuantidade(${produto.id})">
                         🛒 Adicionar ao Carrinho
                     </button>
                 </div>
@@ -947,4 +1078,4 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-console.log('✅ script.js carregado completamente - versão com carrinho + toggle filtros');
+console.log('✅ script.js carregado completamente - versão com carrinho + quantidade');

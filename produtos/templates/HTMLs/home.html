@@ -50,6 +50,26 @@
         <div class="cart-pulse"></div>
     </div>
 
+    <!-- ✅ NOVO: Modal de Quantidade -->
+    <div class="quantity-modal" id="quantityModal">
+        <div class="quantity-content">
+            <h3>🛒 Selecionar Quantidade</h3>
+            <div class="product-info">
+                <span class="product-emoji" id="quantityProductEmoji">📦</span>
+                <span class="product-name" id="quantityProductName">Produto</span>
+            </div>
+            <div class="quantity-selector">
+                <button class="quantity-btn" id="decreaseBtn" onclick="alterarQuantidade(-1)">−</button>
+                <input type="number" class="quantity-input" id="quantityInput" value="1" min="1" max="99" onchange="validarQuantidade()">
+                <button class="quantity-btn" id="increaseBtn" onclick="alterarQuantidade(1)">+</button>
+            </div>
+            <div class="quantity-actions">
+                <button class="btn-confirm" onclick="confirmarQuantidade()">Confirmar</button>
+                <button class="btn-cancel" onclick="cancelarQuantidade()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ✅ NOVO: Painel do Carrinho -->
     <div class="cart-panel" id="cartPanel">
         <div class="cart-header">
