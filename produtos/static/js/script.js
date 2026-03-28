@@ -4,6 +4,9 @@
 
 console.log('🔥 SCRIPT.JS CARREGADO - VERSÃO COM CARRINHO + QUANTIDADE');
 
+// FORÇAR RESET DO LOADING
+localStorage.removeItem('alpack_loading_shown');
+
 // ─── Estado global ────────────────────────────────────────
 const ITENS_POR_PAGINA = 12;
 let paginaAtual = 1;
