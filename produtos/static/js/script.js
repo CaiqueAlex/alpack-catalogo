@@ -8,7 +8,7 @@ console.log('🔥 SCRIPT.JS CARREGADO - VERSÃO COM CARRINHO + QUANTIDADE');
 localStorage.removeItem('alpack_loading_shown');
 
 // ─── Estado global ────────────────────────────────────────
-const ITENS_POR_PAGINA = 12;
+const ITENS_POR_PAGINA = 24;
 let paginaAtual = 1;
 let categoriaAtiva = 'todos';
 let termoBusca = '';

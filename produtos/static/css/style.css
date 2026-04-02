@@ -1895,7 +1895,8 @@ body {
     position: fixed;
     top: 0;
     right: -400px;
-    width: 400px;
+    width: 400px; /* Largura padrão para PC */
+    max-width: 100%; /* ✅ Não deixa passar da tela no celular */
     height: 100vh;
     background: var(--cor-card);
     box-shadow: -5px 0 25px rgba(0,0,0,0.2);
@@ -1904,6 +1905,14 @@ body {
     flex-direction: column;
     transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     overflow: hidden;
+}
+
+/* ✅ Media Query para celulares pequenos */
+@media (max-width: 400px) {
+    .cart-panel {
+        width: 100%;
+        right: -100%;
+    }
 }
 
 .cart-panel.open {
@@ -1921,8 +1930,9 @@ body {
 }
 
 .cart-header h3 {
+    
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 700;
 }
 
@@ -1950,7 +1960,8 @@ body {
 .cart-items {
     flex: 1;
     padding: 20px;
-    overflow-y: auto;
+    overflow-y: auto; /* ✅ Permite rolar os produtos */
+    max-height: calc(100vh - 200px); /* ✅ Garante espaço para o header e footer */
 }
 
 .cart-empty {
@@ -2025,9 +2036,12 @@ body {
 .cart-actions {
     padding: 20px;
     border-top: 2px solid var(--cor-border);
-    display: none;
+    display: none; /* O seu JS muda para 'flex' quando há itens */
     flex-direction: column;
     gap: 10px;
+    background: var(--cor-card); /* Garante que cubra o fundo ao rolar */
+    position: relative; 
+    z-index: 10;
 }
 
 .btn-continue-shopping {
@@ -2049,6 +2063,7 @@ body {
 .btn-make-order {
     background: linear-gradient(135deg, var(--cor-primaria), #F0D060);
     color: #1a1a1a;
+    width: 100%;
     border: none;
     padding: 15px 20px;
     border-radius: 10px;
@@ -2158,7 +2173,8 @@ body {
     }
     
     .cart-items {
-        padding: 15px;
+        padding: 10px;
+        gap: 10px;
     }
     
     .cart-actions {

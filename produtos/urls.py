@@ -1,4 +1,3 @@
-# produtos/urls.py
 from django.urls import path
 from . import views
 
@@ -12,4 +11,8 @@ urlpatterns = [
     path('api/deletar-produto/<int:produto_id>/', views.api_deletar_produto, name='api_deletar_produto'),
     path('api/salvar-categoria/', views.api_salvar_categoria, name='api_salvar_categoria'),
     path('api/deletar-categoria/<int:categoria_id>/', views.api_deletar_categoria, name='api_deletar_categoria'),
+    # ✅ NOVO
+    path('api/salvar-config/', views.api_salvar_config, name='api_salvar_config'),
+    path('api/exportar-xml/', views.api_exportar_xml, name='api_exportar_xml'),
+    path('api/importar-xml/', views.api_importar_xml, name='api_importar_xml'),
 ]

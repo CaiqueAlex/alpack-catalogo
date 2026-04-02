@@ -480,6 +480,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Modal de Logout -->
@@ -692,43 +693,90 @@
             </div>
 
             <!-- Aba Configurações -->
+            <!-- Aba Configurações -->
             <div id="configuracoes" class="tab-content">
                 <h2>Configurações da Empresa</h2>
                 <form id="configForm">
                     <div class="form-group">
                         <label>Nome da Empresa</label>
-                        <input type="text" id="empresaNome" value="Alpack Distribuidora">
+                        <input type="text" id="empresaNome">
                     </div>
                     <div class="form-group">
                         <label>WhatsApp (com código do país)</label>
-                        <input type="text" id="empresaWhatsapp" value="551434340001">
+                        <input type="text" id="empresaWhatsapp">
                     </div>
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="email" id="empresaEmail" value="comercial@grupack.com.br">
+                        <input type="email" id="empresaEmail">
                     </div>
                     <div class="form-group">
                         <label>Endereço</label>
-                        <input type="text" id="empresaEndereco" value="Rua 15 de Novembro, N 1206 - Marilia - SP">
+                        <input type="text" id="empresaEndereco">
                     </div>
                     <div class="form-group">
                         <label>Horário de Funcionamento</label>
-                        <input type="text" id="empresaHorario" value="Segunda à Sexta: 8h às 18h e Sábado: 9h às 13h">
+                        <input type="text" id="empresaHorario">
                     </div>
                     <div class="form-group">
                         <label>Mensagem Padrão WhatsApp</label>
-                        <textarea id="empresaMensagem" rows="3">Olá! Vi o produto {produto} no catálogo da Alpack e gostaria de mais informações.</textarea>
+                        <textarea id="empresaMensagem" rows="3"></textarea>
                     </div>
                     <div class="form-group">
                         <label>Texto do Header</label>
-                        <input type="text" id="empresaHeader" value="Descubra nossa variedade em embalagens e descartáveis!">
+                        <input type="text" id="empresaHeader">
                     </div>
                     <div class="form-group">
                         <label>Subtítulo do Header</label>
-                        <input type="text" id="empresaSubtitulo" value="Qualidade e preço justo para seu negócio crescer">
+                        <input type="text" id="empresaSubtitulo">
                     </div>
-                    <button type="submit" class="btn-success">Salvar Configurações</button>
+                    <button type="submit" class="btn-success">💾 Salvar Configurações</button>
                 </form>
+
+                <!-- ✅ NOVO: Seção XML -->
+                <hr style="margin: 40px 0; border-color: var(--border-color);">
+                <h2>📤 Exportar / 📥 Importar Produtos (XML)</h2>
+
+                <!-- Exportar -->
+                <div style="background: var(--light); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px;">📤 Exportar para XML</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Filtrar por Categoria</label>
+                            <select id="exportCategoria">
+                                <option value="">Todas as categorias</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Apenas Destaques?</label>
+                            <select id="exportDestaque">
+                                <option value="">Todos os produtos</option>
+                                <option value="1">Somente produtos em destaque</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" onclick="exportarXML()" class="btn-success">
+                        📥 Baixar XML
+                    </button>
+                </div>
+
+                <!-- Importar -->
+                <div style="background: var(--light); padding: 20px; border-radius: 10px;">
+                    <h3 style="margin-bottom: 15px;">📥 Importar de XML</h3>
+                    <p style="margin-bottom: 15px; opacity: 0.8; font-size: 14px;">
+                        O arquivo deve seguir o mesmo padrão do exportado. Produtos existentes (mesmo nome) serão atualizados; novos serão criados.
+                    </p>
+                    <div class="form-group">
+                        <div class="image-upload-container" onclick="document.getElementById('xmlImportFile').click()">
+                            <div id="xml-upload-text">📂 Clique para selecionar o arquivo XML</div>
+                            <input type="file" id="xmlImportFile" accept=".xml" style="display:none;"
+                                onchange="document.getElementById('xml-upload-text').textContent = this.files[0]?.name || 'Nenhum arquivo'">
+                        </div>
+                    </div>
+                    <button type="button" onclick="importarXML()" class="btn-success">
+                        📤 Importar XML
+                    </button>
+                    <div id="importResult" style="margin-top: 15px; display: none;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -743,78 +791,55 @@
         let categorias = [];
         let produtos = [];
 
-        // Paginação produtos
         let produtosFiltrados = [];
         let paginaProdutos = 1;
 
-        // Paginação categorias
         let categoriasFiltradas = [];
         let paginaCategorias = 1;
 
-        // ✅ NOVO: Funções de compressão de imagem
+        // ─── Compressão de imagem ──────────────────────────
         function compressImage(file, maxWidth = 800, quality = 0.7) {
             return new Promise((resolve) => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 const img = new Image();
-
                 img.onload = () => {
-                    // Calcular novo tamanho mantendo proporção
                     let { width, height } = img;
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
-                    }
-                    if (height > maxWidth) {
-                        width = (width * maxWidth) / height;
-                        height = maxWidth;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    // Desenhar imagem redimensionada
+                    if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
+                    if (height > maxWidth) { width = (width * maxWidth) / height; height = maxWidth; }
+                    canvas.width = width; canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-
-                    // Converter para base64 com qualidade reduzida
-                    canvas.toBlob(
-                        (blob) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.readAsDataURL(blob);
-                        },
-                        'image/jpeg',
-                        quality
-                    );
+                    canvas.toBlob(blob => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    }, 'image/jpeg', quality);
                 };
-
                 img.src = URL.createObjectURL(file);
             });
         }
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const k = 1024, sizes = ['Bytes','KB','MB','GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         function updateUploadStatus(message, type) {
-            const statusEl = document.getElementById('upload-status');
-            statusEl.textContent = message;
-            statusEl.className = `upload-status ${type}`;
+            const el = document.getElementById('upload-status');
+            el.textContent = message;
+            el.className = `upload-status ${type}`;
         }
 
         // ─── CSRF ──────────────────────────────────────────
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                for (const cookie of document.cookie.split(';')) {
+                    const c = cookie.trim();
+                    if (c.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(c.substring(name.length + 1));
                         break;
                     }
                 }
@@ -823,7 +848,7 @@
         }
         const csrftoken = getCookie('csrftoken');
 
-        // ─── Carregar dados da API ──────────────────────────
+        // ─── Carregar dados ────────────────────────────────
         async function loadData() {
             try {
                 const response = await fetch('/produtos/api/produtos/');
@@ -843,60 +868,43 @@
             modal.style.display = 'block';
             requestAnimationFrame(() => modal.classList.add('show'));
         }
-
         function cancelLogout() {
             const modal = document.getElementById('logoutModal');
             modal.classList.remove('show');
             setTimeout(() => modal.style.display = 'none', 400);
         }
-
         function confirmLogout() {
             window.location.href = '/produtos/backend/?logout=1';
         }
-
         function showDeleteModal(tipo, id, nome) {
-            deleteAction = tipo;
-            deleteId = id;
-            const modal   = document.getElementById('deleteModal');
-            const message = document.getElementById('deleteMessage');
-            const label   = tipo === 'produto' ? 'produto' : 'categoria';
-            message.textContent = `Tem certeza que deseja excluir ${label === 'produto' ? 'o' : 'a'} ${label} "${nome}"? Esta ação não pode ser desfeita.`;
+            deleteAction = tipo; deleteId = id;
+            const modal = document.getElementById('deleteModal');
+            const label = tipo === 'produto' ? 'produto' : 'categoria';
+            document.getElementById('deleteMessage').textContent =
+                `Tem certeza que deseja excluir ${label === 'produto' ? 'o' : 'a'} ${label} "${nome}"? Esta ação não pode ser desfeita.`;
             modal.style.display = 'block';
             requestAnimationFrame(() => modal.classList.add('show'));
         }
-
         function cancelDelete() {
             const modal = document.getElementById('deleteModal');
             modal.classList.remove('show');
-            setTimeout(() => {
-                modal.style.display = 'none';
-                deleteAction = null;
-                deleteId = null;
-            }, 400);
+            setTimeout(() => { modal.style.display = 'none'; deleteAction = null; deleteId = null; }, 400);
         }
-
         async function confirmDelete() {
             try {
                 const url = deleteAction === 'produto'
                     ? `/produtos/api/deletar-produto/${deleteId}/`
                     : `/produtos/api/deletar-categoria/${deleteId}/`;
-
                 const response = await fetch(url, {
                     method: 'DELETE',
                     headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
                 });
-
                 const result = await response.json();
-
                 if (result.success) {
                     showNotification(`${deleteAction === 'produto' ? 'Produto' : 'Categoria'} excluído com sucesso!`, 'success');
                     await loadData();
-                    if (deleteAction === 'produto') {
-                        filtrarProdutosAdmin();
-                    } else {
-                        filtrarCategoriasAdmin();
-                        loadCategoriesSelect();
-                    }
+                    if (deleteAction === 'produto') filtrarProdutosAdmin();
+                    else { filtrarCategoriasAdmin(); loadCategoriesSelect(); }
                 } else {
                     showNotification('Erro ao excluir: ' + result.error, 'error');
                 }
@@ -917,9 +925,7 @@
                 const btn = document.getElementById('themeToggle');
                 if (btn) btn.addEventListener('click', () => this.toggleTheme());
             }
-            toggleTheme() {
-                this.applyTheme(this.currentTheme === 'light' ? 'dark' : 'light');
-            }
+            toggleTheme() { this.applyTheme(this.currentTheme === 'light' ? 'dark' : 'light'); }
             applyTheme(theme) {
                 this.currentTheme = theme;
                 document.documentElement.setAttribute('data-theme', theme);
@@ -938,13 +944,9 @@
                     <span class="notification-icon">${icons[type]}</span>
                     <span>${message}</span>
                 </div>
-                <div class="progress-bar"></div>
-            `;
+                <div class="progress-bar"></div>`;
             container.appendChild(el);
-            setTimeout(() => {
-                el.classList.add('hide');
-                setTimeout(() => el.remove(), 500);
-            }, 5000);
+            setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 500); }, 5000);
         }
 
         // ─── Abas ───────────────────────────────────────────
@@ -953,21 +955,24 @@
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             if (event && event.target) event.target.classList.add('active');
-
-            if (tabName === 'produtos') {
-                filtrarProdutosAdmin();
-                loadCategoriesSelect();
-            } else if (tabName === 'categorias') {
-                filtrarCategoriasAdmin();
-            }
+            if (tabName === 'produtos') { filtrarProdutosAdmin(); loadCategoriesSelect(); }
+            else if (tabName === 'categorias') filtrarCategoriasAdmin();
+            else if (tabName === 'configuracoes') preencherConfigForm();
         }
 
-        // ─── Select de categorias no form de produto ────────
+        // ─── Select de categorias ───────────────────────────
         function loadCategoriesSelect() {
             const select = document.getElementById('produtoCategoria');
             if (!select) return;
             select.innerHTML = '<option value="">Selecionar</option>' +
                 categorias.map(cat => `<option value="${cat.id}">${cat.emoji} ${cat.nome}</option>`).join('');
+
+            // ✅ Também preencher select de exportação
+            const exportSel = document.getElementById('exportCategoria');
+            if (exportSel) {
+                exportSel.innerHTML = '<option value="">Todas as categorias</option>' +
+                    categorias.map(cat => `<option value="${cat.id}">${cat.emoji} ${cat.nome}</option>`).join('');
+            }
         }
 
         // ═══════════════════════════════════════════════════
@@ -988,33 +993,30 @@
             const lista = document.getElementById('produtos-lista');
             const paginacaoEl = document.getElementById('paginacaoProdutos');
             if (!lista) return;
-
             const total = produtosFiltrados.length;
             const totalPaginas = Math.max(1, Math.ceil(total / ADMIN_ITENS_POR_PAGINA));
             if (paginaProdutos > totalPaginas) paginaProdutos = totalPaginas;
-
             const inicio = (paginaProdutos - 1) * ADMIN_ITENS_POR_PAGINA;
             const slice  = produtosFiltrados.slice(inicio, inicio + ADMIN_ITENS_POR_PAGINA);
-
             if (slice.length === 0) {
-                lista.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.6;">Nenhum produto encontrado.</p>';
+                lista.innerHTML = '<p style="text-align:center;padding:20px;opacity:0.6;">Nenhum produto encontrado.</p>';
             } else {
                 lista.innerHTML = slice.map(p => {
                     const cat = categorias.find(c => c.id === p.categoria_id);
                     return `
                         <div class="produto-item">
-                            <div style="display: flex; align-items: center; gap: 20px;">
-                                <div style="min-width: 80px;">
+                            <div style="display:flex;align-items:center;gap:20px;">
+                                <div style="min-width:80px;">
                                     ${p.imagem
                                         ? `<img src="${p.imagem}" class="produto-preview" alt="${p.nome}" style="object-fit:contain;">`
-                                        : `<div style="font-size:48px; text-align:center;">${p.emoji}</div>`}
+                                        : `<div style="font-size:48px;text-align:center;">${p.emoji}</div>`}
                                 </div>
-                                <div style="flex: 1;">
-                                    <h3 style="margin:0; color:var(--text-color);">
+                                <div style="flex:1;">
+                                    <h3 style="margin:0;color:var(--text-color);">
                                         ${p.nome}
                                         ${p.destaque ? '<span style="background:var(--primary);color:white;padding:4px 8px;border-radius:12px;font-size:12px;">⭐ DESTAQUE</span>' : ''}
                                     </h3>
-                                    <p style="color:#666; margin:5px 0;"><strong>${cat ? cat.emoji + ' ' + cat.nome : 'Sem categoria'}</strong></p>
+                                    <p style="color:#666;margin:5px 0;"><strong>${cat ? cat.emoji + ' ' + cat.nome : 'Sem categoria'}</strong></p>
                                     <p style="margin:5px 0;">${p.descricao}</p>
                                     <div style="margin-top:10px;">
                                         ${(p.tags || []).map(tag => `<span style="background:var(--light);color:var(--text-color);padding:2px 8px;border-radius:12px;font-size:12px;margin-right:5px;">#${tag}</span>`).join('')}
@@ -1025,22 +1027,14 @@
                                     <button onclick="showDeleteModal('produto', ${p.id}, '${p.nome.replace(/'/g, "\\'")}')" class="btn-danger">Excluir</button>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 }).join('');
             }
-
-            // Paginação
             if (paginacaoEl) {
-                if (totalPaginas <= 1) {
-                    paginacaoEl.innerHTML = '';
-                } else {
-                    paginacaoEl.innerHTML = `
-                        <button onclick="mudarPaginaProdutos(-1)" ${paginaProdutos === 1 ? 'disabled' : ''}>◀ Anterior</button>
-                        <span class="page-info">Página ${paginaProdutos} de ${totalPaginas} (${total} produtos)</span>
-                        <button onclick="mudarPaginaProdutos(1)" ${paginaProdutos === totalPaginas ? 'disabled' : ''}>Próximo ▶</button>
-                    `;
-                }
+                paginacaoEl.innerHTML = totalPaginas <= 1 ? '' : `
+                    <button onclick="mudarPaginaProdutos(-1)" ${paginaProdutos === 1 ? 'disabled' : ''}>◀ Anterior</button>
+                    <span class="page-info">Página ${paginaProdutos} de ${totalPaginas} (${total} produtos)</span>
+                    <button onclick="mudarPaginaProdutos(1)" ${paginaProdutos === totalPaginas ? 'disabled' : ''}>Próximo ▶</button>`;
             }
         }
 
@@ -1055,9 +1049,7 @@
         // ═══════════════════════════════════════════════════
         function filtrarCategoriasAdmin() {
             const termo = (document.getElementById('searchCategorias')?.value || '').toLowerCase().trim();
-            categoriasFiltradas = categorias.filter(c =>
-                c.nome.toLowerCase().includes(termo)
-            );
+            categoriasFiltradas = categorias.filter(c => c.nome.toLowerCase().includes(termo));
             paginaCategorias = 1;
             renderCategoriasAdmin();
         }
@@ -1066,44 +1058,34 @@
             const lista = document.getElementById('categorias-lista');
             const paginacaoEl = document.getElementById('paginacaoCategorias');
             if (!lista) return;
-
             const total = categoriasFiltradas.length;
             const totalPaginas = Math.max(1, Math.ceil(total / ADMIN_ITENS_POR_PAGINA));
             if (paginaCategorias > totalPaginas) paginaCategorias = totalPaginas;
-
             const inicio = (paginaCategorias - 1) * ADMIN_ITENS_POR_PAGINA;
             const slice  = categoriasFiltradas.slice(inicio, inicio + ADMIN_ITENS_POR_PAGINA);
-
             if (slice.length === 0) {
-                lista.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.6;">Nenhuma categoria encontrada.</p>';
+                lista.innerHTML = '<p style="text-align:center;padding:20px;opacity:0.6;">Nenhuma categoria encontrada.</p>';
             } else {
                 lista.innerHTML = slice.map(cat => `
                     <div class="categoria-item">
-                        <div style="display: flex; align-items: center; gap: 20px;">
-                            <div style="font-size: 48px;">${cat.emoji}</div>
-                            <div style="flex: 1;">
-                                <h3 style="margin:0; color:var(--text-color);">${cat.nome}</h3>
-                                <p style="color:#666; margin:5px 0;">ID: ${cat.id}</p>
+                        <div style="display:flex;align-items:center;gap:20px;">
+                            <div style="font-size:48px;">${cat.emoji}</div>
+                            <div style="flex:1;">
+                                <h3 style="margin:0;color:var(--text-color);">${cat.nome}</h3>
+                                <p style="color:#666;margin:5px 0;">ID: ${cat.id}</p>
                             </div>
                             <div>
                                 <button onclick="editCategory(${cat.id})" class="btn-success">Editar</button>
                                 <button onclick="showDeleteModal('categoria', ${cat.id}, '${cat.nome.replace(/'/g, "\\'")}')" class="btn-danger">Excluir</button>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    </div>`).join('');
             }
-
             if (paginacaoEl) {
-                if (totalPaginas <= 1) {
-                    paginacaoEl.innerHTML = '';
-                } else {
-                    paginacaoEl.innerHTML = `
-                        <button onclick="mudarPaginaCategorias(-1)" ${paginaCategorias === 1 ? 'disabled' : ''}>◀ Anterior</button>
-                        <span class="page-info">Página ${paginaCategorias} de ${totalPaginas} (${total} categorias)</span>
-                        <button onclick="mudarPaginaCategorias(1)" ${paginaCategorias === totalPaginas ? 'disabled' : ''}>Próximo ▶</button>
-                    `;
-                }
+                paginacaoEl.innerHTML = totalPaginas <= 1 ? '' : `
+                    <button onclick="mudarPaginaCategorias(-1)" ${paginaCategorias === 1 ? 'disabled' : ''}>◀ Anterior</button>
+                    <span class="page-info">Página ${paginaCategorias} de ${totalPaginas} (${total} categorias)</span>
+                    <button onclick="mudarPaginaCategorias(1)" ${paginaCategorias === totalPaginas ? 'disabled' : ''}>Próximo ▶</button>`;
             }
         }
 
@@ -1120,11 +1102,7 @@
             document.getElementById('categoryForm').reset();
             document.getElementById('categoriaId').value = '';
         }
-
-        function hideAddCategory() {
-            document.getElementById('category-form').style.display = 'none';
-        }
-
+        function hideAddCategory() { document.getElementById('category-form').style.display = 'none'; }
         function editCategory(id) {
             const cat = categorias.find(c => c.id === id);
             if (!cat) return;
@@ -1135,15 +1113,11 @@
             document.getElementById('categoriaEmoji').value = cat.emoji;
         }
 
-        document.getElementById('categoryForm')?.addEventListener('submit', async function (e) {
+        document.getElementById('categoryForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             const id = document.getElementById('categoriaId').value;
-            const payload = {
-                nome:  document.getElementById('categoriaNome').value,
-                emoji: document.getElementById('categoriaEmoji').value
-            };
+            const payload = { nome: document.getElementById('categoriaNome').value, emoji: document.getElementById('categoriaEmoji').value };
             if (id) payload.id = parseInt(id);
-
             try {
                 const res = await fetch('/produtos/api/salvar-categoria/', {
                     method: 'POST',
@@ -1160,40 +1134,26 @@
                 } else {
                     showNotification('Erro: ' + result.error, 'error');
                 }
-            } catch (err) {
-                showNotification('Erro ao salvar categoria', 'error');
-            }
+            } catch (err) { showNotification('Erro ao salvar categoria', 'error'); }
         });
 
         // ─── Forms Produto ──────────────────────────────────
-        document.getElementById('produtoImagem')?.addEventListener('change', async function (e) {
+        document.getElementById('produtoImagem')?.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const originalSize = file.size;
             updateUploadStatus(`Processando ${file.name} (${formatFileSize(originalSize)})...`, 'processing');
-
             try {
-                // ✅ NOVO: Comprimir imagem automaticamente
                 const compressedBase64 = await compressImage(file, 800, 0.7);
-                
                 const preview = document.getElementById('image-preview');
                 preview.src = compressedBase64;
                 preview.style.display = 'block';
                 document.getElementById('upload-text').textContent = file.name;
                 document.getElementById('produtoImagemBase64').value = compressedBase64;
-
-                // Calcular nova size (aproximada)
-                const newSize = (compressedBase64.length * 0.75); // Base64 é ~33% maior que binário
+                const newSize = compressedBase64.length * 0.75;
                 const reduction = ((originalSize - newSize) / originalSize * 100).toFixed(1);
-
-                updateUploadStatus(
-                    `✅ Comprimida: ${formatFileSize(originalSize)} → ${formatFileSize(newSize)} (${reduction}% menor)`,
-                    'compressed'
-                );
-
+                updateUploadStatus(`✅ Comprimida: ${formatFileSize(originalSize)} → ${formatFileSize(newSize)} (${reduction}% menor)`, 'compressed');
             } catch (error) {
-                console.error('Erro ao comprimir imagem:', error);
                 updateUploadStatus('❌ Erro ao processar imagem. Tente novamente.', 'error');
             }
         });
@@ -1209,10 +1169,7 @@
             updateUploadStatus('', '');
             loadCategoriesSelect();
         }
-
-        function hideAddProduct() {
-            document.getElementById('product-form').style.display = 'none';
-        }
+        function hideAddProduct() { document.getElementById('product-form').style.display = 'none'; }
 
         function editProduct(id) {
             const p = produtos.find(x => x.id === id);
@@ -1221,13 +1178,11 @@
             document.getElementById('product-form').style.display = 'block';
             document.getElementById('produtoId').value = p.id;
             document.getElementById('produtoNome').value = p.nome;
-            document.getElementById('produtoCategoria').value = p.categoria_id;
             document.getElementById('produtoDescricao').value = p.descricao;
             document.getElementById('produtoEmoji').value = p.emoji;
             document.getElementById('produtoTags').value = (p.tags || []).join(', ');
             document.getElementById('produtoDestaque').checked = p.destaque;
             document.getElementById('produtoImagemBase64').value = p.imagem || '';
-
             if (p.imagem) {
                 document.getElementById('image-preview').src = p.imagem;
                 document.getElementById('image-preview').style.display = 'block';
@@ -1242,20 +1197,19 @@
             document.getElementById('produtoCategoria').value = p.categoria_id;
         }
 
-        document.getElementById('productForm')?.addEventListener('submit', async function (e) {
+        document.getElementById('productForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             const id = document.getElementById('produtoId').value;
             const payload = {
-                nome:        document.getElementById('produtoNome').value,
+                nome: document.getElementById('produtoNome').value,
                 categoria_id: parseInt(document.getElementById('produtoCategoria').value),
-                descricao:   document.getElementById('produtoDescricao').value,
-                emoji:       document.getElementById('produtoEmoji').value || '📦',
-                imagem:      document.getElementById('produtoImagemBase64').value || '',
-                destaque:    document.getElementById('produtoDestaque').checked,
-                tags:        document.getElementById('produtoTags').value.split(',').map(t => t.trim()).filter(t => t)
+                descricao: document.getElementById('produtoDescricao').value,
+                emoji: document.getElementById('produtoEmoji').value || '📦',
+                imagem: document.getElementById('produtoImagemBase64').value || '',
+                destaque: document.getElementById('produtoDestaque').checked,
+                tags: document.getElementById('produtoTags').value.split(',').map(t => t.trim()).filter(t => t)
             };
             if (id) payload.id = parseInt(id);
-
             try {
                 const res = await fetch('/produtos/api/salvar-produto/', {
                     method: 'POST',
@@ -1271,15 +1225,32 @@
                 } else {
                     showNotification('Erro: ' + result.error, 'error');
                 }
-            } catch (err) {
-                showNotification('Erro ao salvar produto', 'error');
-            }
+            } catch (err) { showNotification('Erro ao salvar produto', 'error'); }
         });
 
-        // ─── Config ─────────────────────────────────────────
-        document.getElementById('configForm')?.addEventListener('submit', function (e) {
+        // ─── ✅ NOVO: Config server-side ────────────────────
+        function preencherConfigForm() {
+            // Preencher com dados vindos do servidor (injetados pelo Django)
+            const cfg = window.CONFIG_ATUAL || {};
+            const campos = {
+                'empresaNome':      cfg.nome            || '',
+                'empresaWhatsapp':  cfg.whatsapp         || '',
+                'empresaEmail':     cfg.email            || '',
+                'empresaEndereco':  cfg.endereco         || '',
+                'empresaHorario':   cfg.horario          || '',
+                'empresaMensagem':  cfg.mensagem_padrao  || '',
+                'empresaHeader':    cfg.header_titulo    || '',
+                'empresaSubtitulo': cfg.header_subtitulo || '',
+            };
+            for (const [id, val] of Object.entries(campos)) {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            }
+        }
+
+        document.getElementById('configForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const config = {
+            const payload = {
                 nome:             document.getElementById('empresaNome').value,
                 whatsapp:         document.getElementById('empresaWhatsapp').value,
                 email:            document.getElementById('empresaEmail').value,
@@ -1287,41 +1258,105 @@
                 horario:          document.getElementById('empresaHorario').value,
                 mensagem_padrao:  document.getElementById('empresaMensagem').value,
                 header_titulo:    document.getElementById('empresaHeader').value,
-                header_subtitulo: document.getElementById('empresaSubtitulo').value
+                header_subtitulo: document.getElementById('empresaSubtitulo').value,
             };
-            localStorage.setItem('alpack_config', JSON.stringify(config));
-            showNotification('Configurações salvas com sucesso!', 'success');
-            showNotification('As alterações serão aplicadas na próxima visita ao catálogo.', 'info');
+            try {
+                const res = await fetch('/produtos/api/salvar-config/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification('✅ Configurações salvas no servidor! Todos verão as mudanças.', 'success');
+                    // Atualizar cache local também
+                    window.CONFIG_ATUAL = { ...window.CONFIG_ATUAL, ...payload };
+                } else {
+                    showNotification('Erro: ' + result.error, 'error');
+                }
+            } catch (err) {
+                showNotification('Erro ao salvar configurações', 'error');
+            }
         });
 
-        // ─── Init ────────────────────────────────────────────
-        window.addEventListener('load', async function () {
-            new ThemeManager();
+        // ─── ✅ NOVO: Exportar XML ──────────────────────────
+        function exportarXML() {
+            const categoriaId = document.getElementById('exportCategoria').value;
+            const destaque    = document.getElementById('exportDestaque').value;
+            let url = '/produtos/api/exportar-xml/?';
+            if (categoriaId) url += `categoria_id=${categoriaId}&`;
+            if (destaque)    url += `destaque=${destaque}&`;
+            // Dispara download direto
+            window.location.href = url;
+            showNotification('📥 Download do XML iniciado!', 'success');
+        }
 
-            const config = JSON.parse(localStorage.getItem('alpack_config') || 'null');
-            if (config) {
-                [
-                    ['empresaNome',      config.nome],
-                    ['empresaWhatsapp',  config.whatsapp],
-                    ['empresaEmail',     config.email],
-                    ['empresaEndereco',  config.endereco],
-                    ['empresaHorario',   config.horario],
-                    ['empresaMensagem',  config.mensagem_padrao],
-                    ['empresaHeader',    config.header_titulo],
-                    ['empresaSubtitulo', config.header_subtitulo]
-                ].forEach(([id, val]) => {
-                    const el = document.getElementById(id);
-                    if (el && val) el.value = val;
-                });
+        // ─── ✅ NOVO: Importar XML ──────────────────────────
+        async function importarXML() {
+            const fileInput = document.getElementById('xmlImportFile');
+            const resultDiv = document.getElementById('importResult');
+            if (!fileInput.files[0]) {
+                showNotification('Selecione um arquivo XML primeiro.', 'warning');
+                return;
             }
+            const formData = new FormData();
+            formData.append('arquivo', fileInput.files[0]);
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            resultDiv.style.display = 'none';
+            showNotification('⏳ Importando XML...', 'info');
+
+            try {
+                const res = await fetch('/produtos/api/importar-xml/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    const errosTxt = result.erros.length
+                        ? `<br><small style="color:orange;">⚠️ Avisos:<br>${result.erros.join('<br>')}</small>`
+                        : '';
+                    resultDiv.innerHTML = `
+                        <div style="background:#d4edda;color:#155724;padding:15px;border-radius:8px;border:1px solid #c3e6cb;">
+                            ✅ Importação concluída!<br>
+                            <strong>${result.criados}</strong> produtos criados,
+                            <strong>${result.atualizados}</strong> atualizados.
+                            ${errosTxt}
+                        </div>`;
+                    resultDiv.style.display = 'block';
+                    showNotification(`✅ XML importado: ${result.criados} criados, ${result.atualizados} atualizados.`, 'success');
+                    await loadData();
+                    filtrarProdutosAdmin();
+                    loadCategoriesSelect();
+                } else {
+                    resultDiv.innerHTML = `<div style="background:#f8d7da;color:#721c24;padding:15px;border-radius:8px;">❌ ${result.error}</div>`;
+                    resultDiv.style.display = 'block';
+                    showNotification('Erro na importação: ' + result.error, 'error');
+                }
+            } catch (err) {
+                showNotification('Erro ao importar XML', 'error');
+            }
+        }
+
+        // ─── Init ────────────────────────────────────────────
+        window.addEventListener('load', async function() {
+            new ThemeManager();
 
             if (document.getElementById('produtos-lista')) {
                 await loadData();
                 filtrarProdutosAdmin();
                 filtrarCategoriasAdmin();
                 loadCategoriesSelect();
+                preencherConfigForm();
             }
         });
     </script>
+        <!-- ✅ NOVO: Configs do servidor injetadas pelo Django -->
+    {% if not show_login %}
+    <script>
+        const configAtual = JSON.parse('{{ config_atual_json|escapejs|safe }}' || '{}');
+    </script>
+    {% endif %}
 </body>
 </html>

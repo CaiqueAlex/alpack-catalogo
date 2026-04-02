@@ -105,8 +105,8 @@
                     </div>
                 </div>
                 <div class="header-texto">
-                    <h1 id="headerTitulo">Descubra nossa variedade em embalagens e descartáveis!</h1>
-                    <p id="headerSubtitulo">Qualidade e preço justo para seu negócio crescer</p>
+                    <h1 id="headerTitulo">{{ empresa.header_titulo|default:"Descubra nossa variedade em embalagens e descartáveis!" }}</h1>
+                    <p id="headerSubtitulo">{{ empresa.header_subtitulo|default:"Qualidade e preço justo para seu negócio crescer" }}</p>
                 </div>
             </div>
         </div>
@@ -202,6 +202,7 @@
     </footer>
 
     <!-- Dados do Django para o JS -->
+    <!-- Configs agora vêm do servidor diretamente via context do Django -->
     <script>
         window.DADOS_BANCO = {
             produtos: {{ produtos_json|safe }},
@@ -212,34 +213,6 @@
             whatsapp: "{{ empresa.whatsapp }}",
             mensagemPadrao: "{{ empresa.mensagem_padrao }}"
         };
-
-        // Aplicar configs do localStorage
-        document.addEventListener('DOMContentLoaded', function() {
-            const config = JSON.parse(localStorage.getItem('alpack_config') || '{}');
-
-            if (config.header_titulo) document.getElementById('headerTitulo').textContent = config.header_titulo;
-            if (config.header_subtitulo) document.getElementById('headerSubtitulo').textContent = config.header_subtitulo;
-
-            if (config.whatsapp) {
-                const w = config.whatsapp;
-                const fmt = w.slice(2,4) + ' ' + w.slice(4,9) + '-' + w.slice(9,13);
-                const linkEl = document.getElementById('footerWhatsapp');
-                if (linkEl) {
-                    linkEl.textContent = fmt;
-                    linkEl.href = 'https://wa.me/' + w;
-                }
-                window.dadosEmpresa.whatsapp = w;
-            }
-
-            if (config.email) document.getElementById('footerEmail').textContent = config.email;
-            if (config.horario) document.getElementById('footerHorario').textContent = config.horario;
-            if (config.endereco) document.getElementById('footerEndereco').textContent = config.endereco;
-            if (config.nome) document.getElementById('footerNome').textContent = config.nome;
-            if (config.mensagem_padrao) window.dadosEmpresa.mensagemPadrao = config.mensagem_padrao;
-
-            console.log('🔍 Produtos carregados:', window.DADOS_BANCO.produtos);
-            console.log('🔍 Categorias carregadas:', window.DADOS_BANCO.categorias);
-        });
     </script>
     <script src="{% static 'js/script.js' %}"></script>
 </body>
